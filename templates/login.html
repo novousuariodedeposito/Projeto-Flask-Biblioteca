@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="login-body">
+  <div class="login-wrapper">
+    <div class="login-box">
+      <div class="login-avatar">
+        <img src="{{ url_for('static', filename='imagens/gatito.jpg') }}" alt="Gato">
+      </div>
+      <form method="post">
+        <div class="input-group">
+          <span class="icon">👤</span>
+          <input type="text" name="username" placeholder="Username" required>
+        </div>
+        <button type="submit" class="login-button">LOGIN</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/styles.css">
+    <title>Filmes e Séries em Aberto</title>
+</head>
+<body class="biblioteca-page">
+    <div class="biblioteca-container">
+        <div class="header">
+            <h1>📂 Em Aberto</h1>
+            <form method="get" action="/mybiblioteca">
+                <input type="hidden" name="username" value="{{ username }}">
+                <button type="submit" class="logout-button">Minha Biblioteca</button>
+            </form>
+        </div>
+
+        <form method="post" action="/add_em_aberto" class="add-form">
+            <input type="hidden" name="username" value="{{ username }}">
+            <input type="text" name="title" placeholder="Título do filme ou série" required>
+            <select name="tipo">
+                <option value="filme">Filme</option>
+                <option value="serie">Série</option>
+            </select>
+            <button type="submit" class="add-button">Adicionar</button>
+        </form>
+
+        <div class="section">
+            <h2 class="toggle" data-target="em_aberto_movies">🎞️ Filmes em Aberto</h2>
+            <div id="em_aberto_movies" class="content-grid">
+                {% for movie in em_aberto_movies %}
+                    <div class="card">
+                        <span>{{ movie }}</span>
+                        <form method="post" action="/delete_em_aberto">
+                            <input type="hidden" name="username" value="{{ username }}">
+                            <input type="hidden" name="title" value="{{ movie }}">
+                            <input type="hidden" name="tipo" value="filme">
+                            <button type="submit" class="delete-button">Deletar</button>
+                        </form>
+                        <form method="post" action="/mover_para_filme">
+                            <input type="hidden" name="username" value="{{ username }}">
+                            <input type="hidden" name="title" value="{{ movie }}">
+                            <button type="submit" class="add-button">Mover para Biblioteca</button>
+                        </form>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="toggle" data-target="em_aberto_series">📺 Séries em Aberto</h2>
+            <div id="em_aberto_series" class="content-grid">
+                {% for serie in em_aberto_series %}
+                    <div class="card">
+                        <span>{{ serie }}</span>
+                        <form method="post" action="/delete_em_aberto">
+                            <input type="hidden" name="username" value="{{ username }}">
+                            <input type="hidden" name="title" value="{{ serie }}">
+                            <input type="hidden" name="tipo" value="serie">
+                            <button type="submit" class="delete-button">Deletar</button>
+                        </form>
+                        <form method="post" action="/mover_para_serie">
+                            <input type="hidden" name="username" value="{{ username }}">
+                            <input type="hidden" name="title" value="{{ serie }}">
+                            <button type="submit" class="add-button">Mover para Biblioteca</button>
+                        </form>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function toggleSection(sectionId) {
+        const section = document.getElementById(sectionId);
+        section.style.display = (section.style.display === "none" || section.style.display === "") ? "grid" : "none";
+    }
+
+    document.querySelectorAll('.toggle').forEach(function (toggle) {
+        toggle.addEventListener('click', function () {
+            toggleSection(this.getAttribute('data-target'));
+        });
+    });
+
+    if (window.innerWidth <= 600) {
+        document.getElementById('em_aberto_movies').style.display = "none";
+        document.getElementById('em_aberto_series').style.display = "none";
+    }
+
+    // === INÍCIO: SINCRONIZAÇÃO EM TEMPO REAL COM AJAX ===
+
+    async function fetchAndUpdateAberto(username) {
+        try {
+            const res = await fetch(`/sync_em_aberto?username=${username}`);
+            const data = await res.json();
+            if (!data.success) return;
+
+            updateSection('em_aberto_movies', data.movies, 'filme', username);
+            updateSection('em_aberto_series', data.series, 'serie', username);
+        } catch (e) {
+            console.error("Erro ao sincronizar em_aberto:", e);
+        }
+    }
+
+    function updateSection(sectionId, items, tipo, username) {
+        const section = document.getElementById(sectionId);
+        if (!section) return;
+
+        const currentItems = [...section.querySelectorAll('span')].map(e => e.textContent.trim());
+        const isEqual = currentItems.length === items.length && currentItems.every((v, i) => v === items[i]);
+
+        if (isEqual) return;
+
+        section.innerHTML = '';
+        items.forEach(title => {
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            const span = document.createElement('span');
+            span.textContent = title;
+
+            const delForm = document.createElement('form');
+            delForm.method = 'POST';
+            delForm.action = '/delete_aberto';
+            delForm.innerHTML = `
+                <input type="hidden" name="username" value="${username}">
+                <input type="hidden" name="title" value="${title}">
+                <input type="hidden" name="category" value="${tipo}">
+                <button type="submit" class="delete-button">🗑 Deletar</button>
+            `;
+
+            const moveForm = document.createElement('form');
+            moveForm.method = 'POST';
+            moveForm.action = '/mover_para_biblioteca';
+            moveForm.innerHTML = `
+                <input type="hidden" name="username" value="${username}">
+                <input type="hidden" name="title" value="${title}">
+                <input type="hidden" name="category" value="${tipo}">
+                <button type="submit" class="add-button">📥 Mover para Biblioteca</button>
+            `;
+
+            card.appendChild(span);
+            card.appendChild(delForm);
+            card.appendChild(moveForm);
+
+            section.appendChild(card);
+        });
+    }
+
+    const currentUsername = document.querySelector('input[name="username"]')?.value;
+    if (currentUsername) {
+        setInterval(() => fetchAndUpdateAberto(currentUsername), 5000);
+    }
+
+    // === FIM: SINCRONIZAÇÃO ===
+});
+</script>
+
+</body>
+</html>
