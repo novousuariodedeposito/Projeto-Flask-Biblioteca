@@ -471,7 +471,7 @@ def em_aberto():
        <div id="toast" class="toast"></div>
 
         <!-- Formulário para adicionar -->
-        <form method="POST" action="/add_aberto" class="add-form">
+        <form id="addAbertoForm" class="add-form">
             <input type="hidden" name="username" value="{{ username }}">
             <input type="text" name="title" placeholder="Título do filme ou série" required>
             <select name="category">
@@ -488,18 +488,8 @@ def em_aberto():
                 {% for movie in movies %}
                     <div class="card">
                         <span>{{ movie }}</span>
-                        <form method="POST" action="/delete_aberto" style="margin-top: 10px;">
-                            <input type="hidden" name="username" value="{{ username }}">
-                            <input type="hidden" name="title" value="{{ movie }}">
-                            <input type="hidden" name="category" value="filme">
-                            <button type="submit" class="delete-button">🗑 Deletar</button>
-                        </form>
-                        <form method="POST" action="/mover_para_biblioteca">
-                            <input type="hidden" name="username" value="{{ username }}">
-                            <input type="hidden" name="title" value="{{ movie }}">
-                            <input type="hidden" name="category" value="filme">
-                            <button type="submit" class="add-button">📥 Mover para Biblioteca</button>
-                        </form>
+                        <button class="delete-button delete-aberto-btn" data-title="{{ movie }}" data-category="filme" style="margin-top: 10px;">🗑 Deletar</button>
+                        <button class="add-button mover-biblioteca-btn" data-title="{{ movie }}" data-category="filme">📥 Mover para Biblioteca</button>
                     </div>
                 {% endfor %}
             </div>
@@ -512,18 +502,8 @@ def em_aberto():
                 {% for serie in series %}
                     <div class="card">
                         <span>{{ serie }}</span>
-                        <form method="POST" action="/delete_aberto" style="margin-top: 10px;">
-                            <input type="hidden" name="username" value="{{ username }}">
-                            <input type="hidden" name="title" value="{{ serie }}">
-                            <input type="hidden" name="category" value="serie">
-                            <button type="submit" class="delete-button">🗑 Deletar</button>
-                        </form>
-                        <form method="POST" action="/mover_para_biblioteca">
-                            <input type="hidden" name="username" value="{{ username }}">
-                            <input type="hidden" name="title" value="{{ serie }}">
-                            <input type="hidden" name="category" value="serie">
-                            <button type="submit" class="add-button">📥 Mover para Biblioteca</button>
-                        </form>
+                        <button class="delete-button delete-aberto-btn" data-title="{{ serie }}" data-category="serie" style="margin-top: 10px;">🗑 Deletar</button>
+                        <button class="add-button mover-biblioteca-btn" data-title="{{ serie }}" data-category="serie">📥 Mover para Biblioteca</button>
                     </div>
                 {% endfor %}
             </div>
@@ -537,11 +517,135 @@ def em_aberto():
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        function showToast(message, isError = false) {
+            const toast = document.getElementById("toast");
+            toast.textContent = message;
+            toast.className = "toast" + (isError ? " error" : "");
+            toast.classList.add("show");
+            setTimeout(() => {
+                toast.classList.remove("show");
+            }, 3000);
+        }
+
         document.querySelectorAll('.toggle').forEach(function (toggle) {
             toggle.addEventListener('click', function () {
                 const target = document.getElementById(this.getAttribute('data-target'));
                 target.style.display = (target.style.display === "none" || target.style.display === "") ? "grid" : "none";
             });
+        });
+
+        // Adicionar item via AJAX
+        document.getElementById('addAbertoForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const title = formData.get("title");
+            const category = formData.get("category");
+
+            fetch('/add_aberto_ajax', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const containerId = category === 'filme' ? 'abertos_filmes' : 'abertos_series';
+                    const container = document.getElementById(containerId);
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+
+                    const span = document.createElement('span');
+                    span.textContent = title;
+                    card.appendChild(span);
+
+                    const delBtn = document.createElement('button');
+                    delBtn.textContent = '🗑 Deletar';
+                    delBtn.className = 'delete-button delete-aberto-btn';
+                    delBtn.setAttribute('data-title', title);
+                    delBtn.setAttribute('data-category', category);
+                    delBtn.style.marginTop = '10px';
+                    card.appendChild(delBtn);
+
+                    const moveBtn = document.createElement('button');
+                    moveBtn.textContent = '📥 Mover para Biblioteca';
+                    moveBtn.className = 'add-button mover-biblioteca-btn';
+                    moveBtn.setAttribute('data-title', title);
+                    moveBtn.setAttribute('data-category', category);
+                    card.appendChild(moveBtn);
+
+                    container.appendChild(card);
+                    attachEvents(delBtn, moveBtn);
+
+                    showToast(`${title} foi adicionado como ${category === 'filme' ? 'filme' : 'série'} em aberto`);
+                    this.reset();
+                } else {
+                    showToast('Erro ao adicionar item.', true);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showToast('Erro inesperado.', true);
+            });
+        });
+
+        function attachEvents(delBtn, moveBtn) {
+            delBtn.addEventListener('click', function () {
+                const title = this.getAttribute('data-title');
+                const category = this.getAttribute('data-category');
+
+                fetch('/delete_aberto_ajax', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: '{{ username }}',
+                        title: title,
+                        category: category
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        this.closest('.card').remove();
+                        showToast(`${title} foi removido dos em aberto`);
+                    } else {
+                        showToast('Erro ao deletar item.', true);
+                    }
+                });
+            });
+
+            moveBtn.addEventListener('click', function () {
+                const title = this.getAttribute('data-title');
+                const category = this.getAttribute('data-category');
+
+                fetch('/mover_para_biblioteca_ajax', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: '{{ username }}',
+                        title: title,
+                        category: category
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        this.closest('.card').remove();
+                        showToast(`${title} foi movido para a biblioteca`);
+                    } else {
+                        showToast('Erro ao mover item.', true);
+                    }
+                });
+            });
+        }
+
+        // Anexar eventos aos botões existentes
+        document.querySelectorAll('.delete-aberto-btn').forEach(btn => {
+            const moveBtn = btn.nextElementSibling;
+            attachEvents(btn, moveBtn);
         });
 
         // Inicia fechado no mobile
@@ -581,6 +685,31 @@ def add_aberto():
 
     save_data()
     return redirect(url_for('em_aberto', username=username))
+
+
+@app.route('/add_aberto_ajax', methods=['POST'])
+def add_aberto_ajax():
+    username = request.form.get('username')
+    title = request.form.get('title', '').strip()
+    category = request.form.get('category')
+
+    if not title:
+        return jsonify({"success": False, "message": "Título vazio"}), 400
+
+    if username not in user_data or category not in ["filme", "serie"]:
+        return jsonify({"success": False, "message": "Dados inválidos"}), 400
+
+    key = "movies" if category == "filme" else "series"
+
+    user_data.setdefault(username, {})
+    user_data[username].setdefault("abertos", {"movies": [], "series": []})
+
+    if title not in user_data[username]["abertos"][key]:
+        user_data[username]["abertos"][key].append(title)
+        save_data()
+        return jsonify({"success": True, "message": "Adicionado com sucesso"})
+    else:
+        return jsonify({"success": False, "message": "Item já existe"}), 400
 
 
 @app.route('/delete_aberto', methods=['POST'])
@@ -630,6 +759,52 @@ def mover_para_biblioteca():
 
     save_data()
     return redirect(url_for('em_aberto', username=username))
+
+
+@app.route('/delete_aberto_ajax', methods=['POST'])
+def delete_aberto_ajax():
+    data = request.get_json()
+    username = data.get('username')
+    title = data.get('title')
+    category = data.get('category')
+
+    if username not in user_data or category not in ["filme", "serie"]:
+        return jsonify({"success": False}), 400
+
+    key = "movies" if category == "filme" else "series"
+
+    if username in user_data and "abertos" in user_data[username]:
+        lista = user_data[username]["abertos"].get(key, [])
+        user_data[username]["abertos"][key] = [
+            t for t in lista if isinstance(t, str) and isinstance(title, str) and t.lower() != title.lower()
+        ]
+
+    save_data()
+    return jsonify({"success": True})
+
+
+@app.route('/mover_para_biblioteca_ajax', methods=['POST'])
+def mover_para_biblioteca_ajax():
+    data = request.get_json()
+    username = data.get('username')
+    title = data.get('title')
+    category = data.get('category')
+
+    if username not in user_data or category not in ["filme", "serie"]:
+        return jsonify({"success": False}), 400
+
+    key = "movies" if category == "filme" else "series"
+
+    # Adiciona à biblioteca (se ainda não estiver)
+    if title not in user_data[username][key]:
+        user_data[username][key].append(title)
+
+    # Remove da lista de abertos (se estiver)
+    if title in user_data[username].get("abertos", {}).get(key, []):
+        user_data[username]["abertos"][key].remove(title)
+
+    save_data()
+    return jsonify({"success": True})
 
 
 @app.route('/add', methods=['POST'])
