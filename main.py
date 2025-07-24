@@ -29,7 +29,35 @@ def save_data():
 
 
 def limpar_input(texto):
+    """Limpa e normaliza texto para comparações"""
+    if not texto or not isinstance(texto, str):
+        return ""
     return texto.strip().lower()
+
+def validar_titulo(titulo):
+    """Valida se o título é válido"""
+    if not titulo or not isinstance(titulo, str):
+        return False
+    titulo_limpo = titulo.strip()
+    if len(titulo_limpo) < 1 or len(titulo_limpo) > 200:
+        return False
+    return True
+
+def validar_categoria(categoria):
+    """Valida se a categoria é válida"""
+    return categoria in ["filme", "serie"]
+
+def inicializar_usuario(username):
+    """Inicializa estrutura de dados do usuário"""
+    if username not in user_data:
+        user_data[username] = {
+            "movies": [],
+            "series": [],
+            "abertos": {
+                "movies": [],
+                "series": []
+            }
+        }
 
 
 @app.route('/')
@@ -40,19 +68,24 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username')
+        username = request.form.get('username', '').strip()
+        
+        # Validações
         if not username:
-            return "Usuário não pode ser vazio!"
-        if username not in user_data:
-            user_data[username] = {
-                "movies": [],
-                "series": [],
-                "em_aberto": {
-                    "movies": [],
-                    "series": []
-                }
-            }
-            save_data()
+            return render_template('login.html', error="Usuário não pode ser vazio!")
+        
+        if len(username) < 2 or len(username) > 50:
+            return render_template('login.html', error="Nome deve ter entre 2 e 50 caracteres!")
+        
+        # Caracteres permitidos
+        import re
+        if not re.match(r'^[a-zA-Z0-9_-]+$', username):
+            return render_template('login.html', error="Use apenas letras, números, _ ou -")
+        
+        # Inicializa usuário se não existir
+        inicializar_usuario(username)
+        save_data()
+        
         return redirect(url_for('my_biblioteca', username=username))
 
     return render_template('login.html')
@@ -689,27 +722,49 @@ def add_aberto():
 
 @app.route('/add_aberto_ajax', methods=['POST'])
 def add_aberto_ajax():
-    username = request.form.get('username')
-    title = request.form.get('title', '').strip()
-    category = request.form.get('category')
+    try:
+        username = request.form.get('username', '').strip()
+        title = request.form.get('title', '').strip()
+        category = request.form.get('category', '').strip()
 
-    if not title:
-        return jsonify({"success": False, "message": "Título vazio"}), 400
+        # Validações
+        if not username or username not in user_data:
+            return jsonify({"success": False, "message": "Usuário inválido"}), 400
+            
+        if not validar_titulo(title):
+            return jsonify({"success": False, "message": "Título inválido"}), 400
+            
+        if not validar_categoria(category):
+            return jsonify({"success": False, "message": "Categoria inválida"}), 400
 
-    if username not in user_data or category not in ["filme", "serie"]:
-        return jsonify({"success": False, "message": "Dados inválidos"}), 400
+        # Inicializar estrutura se necessário
+        inicializar_usuario(username)
+        
+        key = "movies" if category == "filme" else "series"
+        title_normalizado = limpar_input(title)
+        
+        # Verificar duplicatas
+        lista_atual = user_data[username]["abertos"][key]
+        lista_normalizada = [limpar_input(t) for t in lista_atual if isinstance(t, str)]
+        
+        if title_normalizado in lista_normalizada:
+            return jsonify({"success": False, "message": "Item já existe"}), 400
 
-    key = "movies" if category == "filme" else "series"
-
-    user_data.setdefault(username, {})
-    user_data[username].setdefault("abertos", {"movies": [], "series": []})
-
-    if title not in user_data[username]["abertos"][key]:
+        # Adicionar
         user_data[username]["abertos"][key].append(title)
         save_data()
-        return jsonify({"success": True, "message": "Adicionado com sucesso"})
-    else:
-        return jsonify({"success": False, "message": "Item já existe"}), 400
+        
+        return jsonify({
+            "success": True, 
+            "message": f"{title} adicionado aos em aberto!"
+        })
+        
+    except Exception as e:
+        print(f"Erro em add_aberto_ajax: {e}")
+        return jsonify({
+            "success": False,
+            "message": "Erro interno do servidor"
+        }), 500
 
 
 @app.route('/delete_aberto', methods=['POST'])
@@ -809,20 +864,29 @@ def mover_para_biblioteca_ajax():
 
 @app.route('/add', methods=['POST'])
 def add_item():
-    username = request.form.get('username')
-    title = request.form.get('title', '').strip()
-    category = request.form.get('category')
+    try:
+        username = request.form.get('username', '').strip()
+        title = request.form.get('title', '').strip()
+        category = request.form.get('category', '').strip()
 
-    if not title:
-        return jsonify({"success": False, "message": "Título vazio"}), 400
+        # Validações
+        if not username or username not in user_data:
+            return jsonify({"success": False, "message": "Usuário inválido"}), 400
+            
+        if not validar_titulo(title):
+            return jsonify({"success": False, "message": "Título inválido"}), 400
+            
+        if not validar_categoria(category):
+            return jsonify({"success": False, "message": "Categoria inválida"}), 400
 
-    title_clean = title.strip()
-    title_normalizado = limpar_input(title)
-
-    if username in user_data:
-        lista = user_data[username][
-            "movies"] if category == "filme" else user_data[username]["series"]
-        lista_normalizada = [limpar_input(t) for t in lista]
+        # Normalização
+        title_clean = title.strip()
+        title_normalizado = limpar_input(title)
+        
+        # Verificar duplicatas
+        key = "movies" if category == "filme" else "series"
+        lista = user_data[username][key]
+        lista_normalizada = [limpar_input(t) for t in lista if isinstance(t, str)]
 
         if title_normalizado in lista_normalizada:
             return jsonify({
@@ -830,14 +894,21 @@ def add_item():
                 "message": "Já existe esse título"
             }), 400
 
+        # Adicionar
         lista.append(title_clean)
         save_data()
-        return jsonify({"success": True, "message": "Adicionado com sucesso"})
-
-    return jsonify({
-        "success": False,
-        "message": "Usuário não encontrado"
-    }), 400
+        
+        return jsonify({
+            "success": True, 
+            "message": f"{title_clean} adicionado com sucesso!"
+        })
+        
+    except Exception as e:
+        print(f"Erro em add_item: {e}")
+        return jsonify({
+            "success": False,
+            "message": "Erro interno do servidor"
+        }), 500
 
 
 if __name__ == "__main__":

@@ -12,10 +12,16 @@
       <div class="login-avatar">
         <img src="{{ url_for('static', filename='imagens/gatito.jpg') }}" alt="Gato">
       </div>
+      {% if error %}
+        <div style="color: #ff4444; margin-bottom: 15px; text-align: center; background: #ffe6e6; padding: 10px; border-radius: 5px;">
+          {{ error }}
+        </div>
+      {% endif %}
+      
       <form method="post">
         <div class="input-group">
           <span class="icon">👤</span>
-          <input type="text" name="username" placeholder="Username" required>
+          <input type="text" name="username" placeholder="Username (2-50 caracteres)" required maxlength="50">
         </div>
         <button type="submit" class="login-button">LOGIN</button>
       </form>
