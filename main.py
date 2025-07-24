@@ -69,23 +69,23 @@ def index():
 def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
-
+        
         # Validações
         if not username:
             return render_template('login.html', error="Usuário não pode ser vazio!")
-
+        
         if len(username) < 2 or len(username) > 50:
             return render_template('login.html', error="Nome deve ter entre 2 e 50 caracteres!")
-
+        
         # Caracteres permitidos
         import re
         if not re.match(r'^[a-zA-Z0-9_-]+$', username):
             return render_template('login.html', error="Use apenas letras, números, _ ou -")
-
+        
         # Inicializa usuário se não existir
         inicializar_usuario(username)
         save_data()
-
+        
         return redirect(url_for('my_biblioteca', username=username))
 
     return render_template('login.html')
@@ -141,11 +141,11 @@ def my_biblioteca():
                 {% endfor %}
             </div>
         </div>
-
+                                  
         <div class="section">
         <h2 class="toggle" onclick="goToAberto('{{ username }}')">🎯 Em Aberto</h2>
         </div>
-
+                                  
         <script>
         // redireciona para a página "Em Aberto"
         function goToAberto(username) {
@@ -163,7 +163,7 @@ def my_biblioteca():
             form.submit();
         }
         </script>
-
+                  
         <div class="view-other">
             <h3 class="view-title">🔍 Ver lista de outro usuário</h3>
             <form method="post" action="/view_other" class="view-form">
@@ -248,16 +248,8 @@ def my_biblioteca():
 
         document.querySelectorAll('.delete-button').forEach(btn => attachDeleteEvent(btn));
 
-        // Debounce para evitar duplo submit
-        let isSubmitting = false;
-
-        // Adicionar item via AJAX
         document.getElementById('addForm').addEventListener('submit', function (event) {
             event.preventDefault();
-
-            if (isSubmitting) return;
-            isSubmitting = true;
-
             const formData = new FormData(this);
             const title = formData.get("title");
             const category = formData.get("category");
@@ -298,9 +290,6 @@ def my_biblioteca():
             .catch(err => {
                 console.error(err);
                 showToast('Erro inesperado.', true);
-            })
-            .finally(() => {
-                isSubmitting = false;
             });
         });
     });
@@ -511,7 +500,7 @@ def em_aberto():
             <h1>🎯 Lista Em Aberto de {{ username }}</h1>
             <a href="/login" class="logout-button">Sair</a>
         </div>
-
+                                  
        <div id="toast" class="toast"></div>
 
         <!-- Formulário para adicionar -->
@@ -741,35 +730,35 @@ def add_aberto_ajax():
         # Validações
         if not username or username not in user_data:
             return jsonify({"success": False, "message": "Usuário inválido"}), 400
-
+            
         if not validar_titulo(title):
             return jsonify({"success": False, "message": "Título inválido"}), 400
-
+            
         if not validar_categoria(category):
             return jsonify({"success": False, "message": "Categoria inválida"}), 400
 
         # Inicializar estrutura se necessário
         inicializar_usuario(username)
-
+        
         key = "movies" if category == "filme" else "series"
         title_normalizado = limpar_input(title)
-
+        
         # Verificar duplicatas
         lista_atual = user_data[username]["abertos"][key]
         lista_normalizada = [limpar_input(t) for t in lista_atual if isinstance(t, str)]
-
+        
         if title_normalizado in lista_normalizada:
             return jsonify({"success": False, "message": "Item já existe"}), 400
 
         # Adicionar
         user_data[username]["abertos"][key].append(title)
         save_data()
-
+        
         return jsonify({
             "success": True, 
             "message": f"{title} adicionado aos em aberto!"
         })
-
+        
     except Exception as e:
         print(f"Erro em add_aberto_ajax: {e}")
         return jsonify({
@@ -883,17 +872,17 @@ def add_item():
         # Validações
         if not username or username not in user_data:
             return jsonify({"success": False, "message": "Usuário inválido"}), 400
-
+            
         if not validar_titulo(title):
             return jsonify({"success": False, "message": "Título inválido"}), 400
-
+            
         if not validar_categoria(category):
             return jsonify({"success": False, "message": "Categoria inválida"}), 400
 
         # Normalização
         title_clean = title.strip()
         title_normalizado = limpar_input(title)
-
+        
         # Verificar duplicatas
         key = "movies" if category == "filme" else "series"
         lista = user_data[username][key]
@@ -908,12 +897,12 @@ def add_item():
         # Adicionar
         lista.append(title_clean)
         save_data()
-
+        
         return jsonify({
             "success": True, 
             "message": f"{title_clean} adicionado com sucesso!"
         })
-
+        
     except Exception as e:
         print(f"Erro em add_item: {e}")
         return jsonify({
