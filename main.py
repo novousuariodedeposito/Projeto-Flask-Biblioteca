@@ -98,197 +98,98 @@ def my_biblioteca():
         return "Usuário não encontrado!", 404
 
     return render_template_string('''
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="stylesheet" href="/static/styles.css">
-    <title>Minha Biblioteca - {{ username }}</title>
-</head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="stylesheet" href="/static/styles.css">
+<title>Minha Biblioteca - {{ username }}</title>
 <body class="biblioteca-page">
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h2>📚 Dashboard</h2>
-            <span class="username">{{ username }}</span>
-        </div>
-        <nav class="sidebar-nav">
-            <a href="#home" class="nav-btn active">🏠 Início</a>
-            <a href="#movies" class="nav-btn">🎞️ Filmes</a>
-            <a href="#series" class="nav-btn">📺 Séries</a>
-            <a href="#abertos" class="nav-btn">🎯 Em Aberto</a>
-            <a href="#outros" class="nav-btn">👥 Outros Usuários</a>
-        </nav>
-        <div class="sidebar-footer">
-            <a href="/login" class="logout-btn">🚪 Sair</a>
-        </div>
-    </div>
-
-    <div class="main-content">
-        <!-- HOME -->
-        <div id="home" class="content-section">
-            <div class="welcome-header">
-                <h1>👋 Bem-vindo, <span class="highlight">{{ username }}</span>!</h1>
-                <p>Gerencie sua biblioteca de filmes e séries de forma organizada.</p>
-            </div>
-
-            <form id="addForm" class="add-form">
-                <input type="hidden" name="username" value="{{ username }}">
-                <input type="text" name="title" placeholder="Título do filme ou série" required>
-                <select name="category" required>
-                    <option value="filme">Filme</option>
-                    <option value="serie">Série</option>
-                </select>
-                <button type="submit" class="add-button">➕ Adicionar</button>
-            </form>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">🎬</div>
-                    <div class="stat-info">
-                        <h3>{{ movies|length }}</h3>
-                        <p>Filmes</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">📺</div>
-                    <div class="stat-info">
-                        <h3>{{ series|length }}</h3>
-                        <p>Séries</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">🎯</div>
-                    <div class="stat-info">
-                        <h3>{{ (movies|length + series|length) }}</h3>
-                        <p>Total</p>
-                    </div>
-                </div>
-            </div>
+    <div class="biblioteca-container">
+        <div class="header">
+            <h1>🎬 Biblioteca de {{ username }}</h1>
+            <a href="/login" class="logout-button">Sair</a>
         </div>
 
-        <!-- FILMES -->
-        <div id="movies" class="content-section hidden">
-            <h1>🎞️ Meus Filmes</h1>
-            <div class="content-grid">
+        <form id="addForm" class="add-form">
+            <input type="hidden" name="username" value="{{ username }}">
+            <input type="text" name="title" placeholder="Título do filme ou série" required>
+            <select name="category" required>
+                <option value="filme">Filme</option>
+                <option value="serie">Série</option>
+            </select>
+            <button type="submit" class="add-button">Adicionar</button>
+        </form>
+
+        <div class="section">
+            <h2 class="toggle" data-target="movies">🎞️ Seus Filmes</h2>
+            <div id="movies" class="content-grid" style="display: none;">
                 {% for movie in movies %}
                     <div class="card">
                         <span>{{ movie }}</span>
-                        <button class="delete delete-button" data-title="{{ movie }}" data-category="filme">🗑️ Deletar</button>
+                        <button class="delete delete-button" data-title="{{ movie }}" data-category="filme">Deletar</button>
                     </div>
                 {% endfor %}
             </div>
         </div>
 
-        <!-- SÉRIES -->
-        <div id="series" class="content-section hidden">
-            <h1>📺 Minhas Séries</h1>
-            <div class="content-grid">
+        <div class="section">
+            <h2 class="toggle" data-target="series">📺 Suas Séries</h2>
+            <div id="series" class="content-grid" style="display: none;">
                 {% for serie in series %}
                     <div class="card">
                         <span>{{ serie }}</span>
-                        <button class="delete delete-button" data-title="{{ serie }}" data-category="serie">🗑️ Deletar</button>
+                        <button class="delete delete-button" data-title="{{ serie }}" data-category="serie">Deletar</button>
                     </div>
                 {% endfor %}
             </div>
         </div>
-
-        <!-- EM ABERTO -->
-        <div id="abertos" class="content-section hidden">
-            <h1>🎯 Lista Em Aberto</h1>
-            <p>Acesse sua lista de filmes e séries para assistir mais tarde.</p>
-            <button class="nav-button" onclick="goToAberto('{{ username }}')">
-                🎯 Ir para Em Aberto
-            </button>
+                                  
+        <div class="section">
+        <h2 class="toggle" onclick="goToAberto('{{ username }}')">🎯 Em Aberto</h2>
         </div>
+                                  
+        <script>
+        // redireciona para a página "Em Aberto"
+        function goToAberto(username) {
+            const form = document.createElement('form');
+            form.method = 'GET';
+            form.action = '/em_aberto';
 
-        <!-- OUTROS USUÁRIOS -->
-        <div id="outros" class="content-section hidden">
-            <h1>👥 Explorar Outras Bibliotecas</h1>
-            
-            <div class="explore-section">
-                <h3>🔍 Ver biblioteca de outro usuário</h3>
-                <form method="post" action="/view_other" class="explore-form">
-                    <input type="hidden" name="username" value="{{ username }}">
-                    <select name="other_username" class="explore-select">
-                        {% for user in users if user != username %}
-                            <option value="{{ user }}">{{ user }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" name="action" value="view" class="explore-button">👀 Ver Lista</button>
-                </form>
-            </div>
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'username';
+            input.value = username;
 
-            <div class="explore-section">
-                <h3>🎯 Ver lista Em Aberto</h3>
-                <form method="post" action="/view_aberto" class="explore-form">
-                    <input type="hidden" name="username" value="{{ username }}">
-                    <select name="other_username" class="explore-select">
-                        {% for user in users if user != username %}
-                            <option value="{{ user }}">{{ user }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" name="action" value="view_aberto" class="explore-button">🎯 Ver Em Aberto</button>
-                </form>
-            </div>
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+        }
+        </script>
+                  
+        <div class="view-other">
+            <h3 class="view-title">🔍 Ver lista de outro usuário</h3>
+            <form method="post" action="/view_other" class="view-form">
+                <input type="hidden" name="username" value="{{ username }}">
+                <select name="other_username" class="view-select">
+                    {% for user in users if user != username %}
+                        <option value="{{ user }}">{{ user }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" name="action" value="view" class="view-button">Ver Lista</button>
+            </form>
         </div>
     </div>
+       <h3 class="view-title">🔍 Ver lista de Em Abertos</h3>
+         <form method="post" action="/view_aberto" class="view-form">
+            <input type="hidden" name="username" value="{{ username }}">
+            <select name="other_username" class="view-select">
+            {% for user in users if user != username %}
+                <option value="{{ user }}">{{ user }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" name="action" value="view_aberto" class="view-button">Ver Em Aberto</button>
+    </form>
 
 
     <div id="toast" class="toast"></div>
-
-<script>
-    // ========== NAVIGATION ========== 
-    const sections = ['home', 'movies', 'series', 'abertos', 'outros'];
-
-    function setActiveRoute(route) {
-        sections.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.classList.add('hidden');
-        });
-
-        const activeSection = document.getElementById(route);
-        if (activeSection) activeSection.classList.remove('hidden');
-
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.getAttribute('href') === `#${route}`) {
-                btn.classList.add('active');
-            }
-        });
-    }
-
-    function handleHashChange() {
-        const route = window.location.hash.replace('#', '') || 'home';
-        setActiveRoute(route);
-    }
-
-    window.addEventListener('hashchange', handleHashChange);
-    window.addEventListener('load', handleHashChange);
-
-    // Navigation click handlers
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const route = this.getAttribute('href').replace('#', '');
-            window.location.hash = route;
-        });
-    });
-
-    // Go to Em Aberto function
-    function goToAberto(username) {
-        const form = document.createElement('form');
-        form.method = 'GET';
-        form.action = '/em_aberto';
-
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'username';
-        input.value = username;
-
-        form.appendChild(input);
-        document.body.appendChild(form);
-        form.submit();
-    }
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
