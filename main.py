@@ -600,7 +600,7 @@ def delete_aberto():
         if user in user_data and "abertos" in user_data[user]:
             lista = user_data[user]["abertos"].get(key, [])
             user_data[user]["abertos"][key] = [
-                t for t in lista if t.lower() != title.lower()
+                t for t in lista if isinstance(t, str) and isinstance(title, str) and t.lower() != title.lower()
             ]
 
     save_data()
