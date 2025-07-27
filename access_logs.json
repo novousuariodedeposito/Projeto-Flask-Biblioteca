@@ -547,5 +547,266 @@
         },
         "method": "GET",
         "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:25:18",
+        "ip": "187.11.106.136",
+        "page": "login_page",
+        "username": null,
+        "action": "page_view",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "GET",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:25:21",
+        "ip": "187.11.106.136",
+        "page": "login_page",
+        "username": null,
+        "action": "page_view",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "GET",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:26:07",
+        "ip": "216.144.248.25",
+        "page": "index",
+        "username": null,
+        "action": null,
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Unknown",
+            "os": "Unknown",
+            "language": "en-US"
+        },
+        "method": "HEAD",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:26:07",
+        "ip": "216.144.248.25",
+        "page": "login_page",
+        "username": null,
+        "action": "page_view",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Unknown",
+            "os": "Unknown",
+            "language": "en-US"
+        },
+        "method": "HEAD",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:26:36",
+        "ip": "187.11.106.136",
+        "page": "index",
+        "username": null,
+        "action": null,
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "GET",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:26:36",
+        "ip": "187.11.106.136",
+        "page": "login_page",
+        "username": null,
+        "action": "page_view",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "GET",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:26:42",
+        "ip": "187.11.106.136",
+        "page": "login_page",
+        "username": null,
+        "action": "page_view",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "GET",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:26:55",
+        "ip": "187.11.106.136",
+        "page": "index",
+        "username": null,
+        "action": null,
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "GET",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:26:55",
+        "ip": "187.11.106.136",
+        "page": "login_page",
+        "username": null,
+        "action": "page_view",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "GET",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:27:00",
+        "ip": "187.11.106.136",
+        "page": "login_page",
+        "username": null,
+        "action": "page_view",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "GET",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:27:03",
+        "ip": "187.11.106.136",
+        "page": "login_attempt",
+        "username": "Matheus",
+        "action": "attempt",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "POST",
+        "extra_data": {
+            "form_username": "Matheus"
+        }
+    },
+    {
+        "timestamp": "2025-07-27 09:27:03",
+        "ip": "187.11.106.136",
+        "page": "login_success",
+        "username": "Matheus",
+        "action": "success",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "POST",
+        "extra_data": {
+            "new_user": false,
+            "total_movies": 252,
+            "total_series": 93
+        }
+    },
+    {
+        "timestamp": "2025-07-27 09:27:03",
+        "ip": "187.11.106.136",
+        "page": "mybiblioteca",
+        "username": "Matheus",
+        "action": null,
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "GET",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:27:53",
+        "ip": "187.11.106.136",
+        "page": "mybiblioteca",
+        "username": "Matheus",
+        "action": null,
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "GET",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:28:00",
+        "ip": "187.11.106.136",
+        "page": "index",
+        "username": null,
+        "action": null,
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "GET",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:28:00",
+        "ip": "187.11.106.136",
+        "page": "login_page",
+        "username": null,
+        "action": "page_view",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "GET",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:28:03",
+        "ip": "187.11.106.136",
+        "page": "mybiblioteca",
+        "username": "Matheus",
+        "action": null,
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "GET",
+        "extra_data": {}
     }
 ]
