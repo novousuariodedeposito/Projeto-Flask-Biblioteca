@@ -710,7 +710,7 @@ select option {
 body.login-body {
   margin: 0;
   padding: 0;
-  background: linear-gradient(135deg, #6e00ff, #8e54e9);
+  background: linear-gradient(135deg, #0313fc, #9d0101);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   display: flex;
   align-items: center;
