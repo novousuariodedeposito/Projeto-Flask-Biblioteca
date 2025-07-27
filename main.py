@@ -1121,7 +1121,7 @@ def view_logs():
                 <div>IPs Únicos</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">{{ unique_users }}</div>
+                <div class="stat-number">{{ unique_users_count }}</div>
                 <div>Usuários Únicos</div>
             </div>
             <div class="stat-card">
@@ -1217,7 +1217,7 @@ def view_logs():
     logs=logs,
     total_logs=len(logs),
     unique_ips=len(set(log.get('ip', '') for log in logs)),
-    unique_users=len(set(log.get('username', '') for log in logs if log.get('username'))),
+    unique_users_count=len(set(log.get('username', '') for log in logs if log.get('username'))),
     mobile_percentage=round((mobile_users / len(logs)) * 100, 1) if logs else 0,
     top_browsers=sorted(browsers.items(), key=lambda x: x[1], reverse=True)[:5],
     top_os=sorted(os_stats.items(), key=lambda x: x[1], reverse=True)[:5],
