@@ -911,11 +911,27 @@ def mover_para_biblioteca_ajax():
     save_data()
     return jsonify({"success": True})
 
-@app.route('/admin/logs')
+@app.route('/admin/logs', methods=['GET', 'POST'])
 def view_logs():
     """Rota para visualizar logs de acesso (apenas para administração)"""
     client_ip = get_client_ip()
     log_access(client_ip, "admin_logs")
+    
+    # Processar exclusão de logs se for POST
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'delete_user_logs':
+            username_to_delete = request.form.get('username_to_delete')
+            if username_to_delete:
+                logs = load_access_logs()
+                # Filtrar logs removendo os do usuário selecionado
+                filtered_logs = [log for log in logs if log.get('username') != username_to_delete]
+                save_access_logs(filtered_logs)
+                
+                log_access(client_ip, "admin_delete_logs", None, "delete_user_logs", 
+                          {"deleted_user": username_to_delete, 
+                           "logs_before": len(logs), 
+                           "logs_after": len(filtered_logs)})
     
     logs = load_access_logs()[-1000:]  # Últimos 1000 logs
     
@@ -935,6 +951,9 @@ def view_logs():
         os_stats[os_info] = os_stats.get(os_info, 0) + 1
         actions_stats[action] = actions_stats.get(action, 0) + 1
 
+    # Obter lista de usuários únicos dos logs para o formulário
+    unique_users = sorted(set(log.get('username') for log in logs if log.get('username')))
+    
     return render_template_string('''
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -1034,6 +1053,38 @@ def view_logs():
             border-radius: 3px;
             font-size: 10px;
         }
+        .delete-form {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 2px solid #ff4444;
+        }
+        .delete-form h3 {
+            color: #ff4444;
+            margin-top: 0;
+        }
+        .delete-form select, .delete-form button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            background: #1a1a1a;
+            color: white;
+        }
+        .delete-button {
+            background: #ff4444;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .delete-button:hover {
+            background: #cc0000;
+        }
+        .warning-text {
+            color: #ffaa00;
+            font-size: 14px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body class="biblioteca-page">
@@ -1041,6 +1092,24 @@ def view_logs():
         <a href="/login" class="back-button">⬅ Voltar ao Login</a>
         
         <h1>📊 Analytics Avançado</h1>
+        
+        <!-- Formulário para excluir logs por usuário -->
+        <div class="delete-form">
+            <h3>🗑️ Excluir Logs por Usuário</h3>
+            <p class="warning-text">⚠️ Atenção: Esta ação não pode ser desfeita!</p>
+            <form method="post">
+                <input type="hidden" name="action" value="delete_user_logs">
+                <select name="username_to_delete" required>
+                    <option value="">Selecione o usuário</option>
+                    {% for user in unique_users %}
+                    <option value="{{ user }}">{{ user }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="delete-button" onclick="return confirm('Tem certeza que deseja excluir TODOS os logs deste usuário? Esta ação não pode ser desfeita!')">
+                    🗑️ Excluir Logs do Usuário
+                </button>
+            </form>
+        </div>
         
         <div class="stats">
             <div class="stat-card">
@@ -1152,7 +1221,8 @@ def view_logs():
     mobile_percentage=round((mobile_users / len(logs)) * 100, 1) if logs else 0,
     top_browsers=sorted(browsers.items(), key=lambda x: x[1], reverse=True)[:5],
     top_os=sorted(os_stats.items(), key=lambda x: x[1], reverse=True)[:5],
-    top_actions=sorted(actions_stats.items(), key=lambda x: x[1], reverse=True)[:10]
+    top_actions=sorted(actions_stats.items(), key=lambda x: x[1], reverse=True)[:10],
+    unique_users=unique_users
     )
 
 @app.route('/add', methods=['POST'])
