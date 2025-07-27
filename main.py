@@ -100,7 +100,6 @@ def log_access(ip, page, username=None, action=None, extra_data=None):
         "username": username,
         "action": action,  # Ex: 'login', 'add_movie', 'delete_item', etc.
         "device_info": device_info,
-        "referer": request.headers.get('Referer', ''),
         "method": request.method,
         "extra_data": extra_data or {}
     }
