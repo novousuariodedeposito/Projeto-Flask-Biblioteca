@@ -38,9 +38,50 @@ def get_client_ip():
     else:
         return request.remote_addr
 
-def log_access(ip, page, username=None):
-    """Registra acesso com IP, página e timestamp"""
+def get_device_info():
+    """Coleta informações detalhadas do dispositivo/navegador"""
+    user_agent = request.headers.get('User-Agent', '')
+    
+    # Detecta tipo de dispositivo
+    is_mobile = any(keyword in user_agent.lower() for keyword in 
+                   ['mobile', 'android', 'iphone', 'ipad', 'windows phone'])
+    
+    # Detecta navegador
+    browser = 'Unknown'
+    if 'Chrome' in user_agent:
+        browser = 'Chrome'
+    elif 'Firefox' in user_agent:
+        browser = 'Firefox'
+    elif 'Safari' in user_agent and 'Chrome' not in user_agent:
+        browser = 'Safari'
+    elif 'Edge' in user_agent:
+        browser = 'Edge'
+    
+    # Detecta sistema operacional
+    os_info = 'Unknown'
+    if 'Windows' in user_agent:
+        os_info = 'Windows'
+    elif 'Mac' in user_agent:
+        os_info = 'macOS'
+    elif 'Linux' in user_agent:
+        os_info = 'Linux'
+    elif 'Android' in user_agent:
+        os_info = 'Android'
+    elif 'iOS' in user_agent or 'iPhone' in user_agent or 'iPad' in user_agent:
+        os_info = 'iOS'
+    
+    return {
+        'user_agent': user_agent,
+        'is_mobile': is_mobile,
+        'browser': browser,
+        'os': os_info,
+        'language': request.headers.get('Accept-Language', '').split(',')[0] if request.headers.get('Accept-Language') else 'Unknown'
+    }
+
+def log_access(ip, page, username=None, action=None, extra_data=None):
+    """Registra acesso com informações detalhadas"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    device_info = get_device_info()
     
     # Carrega logs existentes
     if os.path.exists("access_logs.json"):
@@ -52,18 +93,24 @@ def log_access(ip, page, username=None):
     else:
         logs = []
     
-    # Adiciona novo log
+    # Adiciona novo log com informações detalhadas
     log_entry = {
         "timestamp": timestamp,
         "ip": ip,
         "page": page,
-        "username": username
+        "username": username,
+        "action": action,  # Ex: 'login', 'add_movie', 'delete_item', etc.
+        "device_info": device_info,
+        "referer": request.headers.get('Referer', ''),
+        "method": request.method,
+        "extra_data": extra_data or {}
     }
+    
     logs.append(log_entry)
     
-    # Mantém apenas os últimos 1000 logs para evitar arquivo muito grande
-    if len(logs) > 1000:
-        logs = logs[-1000:]
+    # Mantém apenas os últimos 2000 logs
+    if len(logs) > 2000:
+        logs = logs[-2000:]
     
     # Salva logs
     with open("access_logs.json", "w", encoding="utf-8") as file:
@@ -119,28 +166,38 @@ def login():
     
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
-        log_access(client_ip, "login_attempt", username)
+        log_access(client_ip, "login_attempt", username, "attempt", 
+                   {"form_username": username})
         
         # Validações
         if not username:
+            log_access(client_ip, "login_fail", username, "validation_error", 
+                      {"error": "empty_username"})
             return render_template('login.html', error="Usuário não pode ser vazio!")
         
         if len(username) < 2 or len(username) > 50:
+            log_access(client_ip, "login_fail", username, "validation_error", 
+                      {"error": "invalid_length", "length": len(username)})
             return render_template('login.html', error="Nome deve ter entre 2 e 50 caracteres!")
         
         # Caracteres permitidos
         import re
         if not re.match(r'^[a-zA-Z0-9_-]+$', username):
+            log_access(client_ip, "login_fail", username, "validation_error", 
+                      {"error": "invalid_characters"})
             return render_template('login.html', error="Use apenas letras, números, _ ou -")
         
         # Inicializa usuário se não existir
+        was_new_user = username not in user_data
         inicializar_usuario(username)
         save_data()
         
-        log_access(client_ip, "login_success", username)
+        log_access(client_ip, "login_success", username, "success", 
+                   {"new_user": was_new_user, "total_movies": len(user_data[username]["movies"]), 
+                    "total_series": len(user_data[username]["series"])})
         return redirect(url_for('my_biblioteca', username=username))
     
-    log_access(client_ip, "login_page")
+    log_access(client_ip, "login_page", None, "page_view")
     return render_template('login.html')
 
 
@@ -438,8 +495,12 @@ def delete_item():
     username = data.get('username')
     title = data.get('title')
     category = data.get('category')
+    client_ip = get_client_ip()
 
     if username in user_data:
+        # Conta itens antes da deleção
+        old_count = len(user_data[username]["movies"] if category == "filme" else user_data[username]["series"])
+        
         if category == "filme":
             user_data[username]["movies"] = [
                 m for m in user_data[username]["movies"]
@@ -450,8 +511,26 @@ def delete_item():
                 s for s in user_data[username]["series"]
                 if s.lower() != title.lower()
             ]
+        
+        new_count = len(user_data[username]["movies"] if category == "filme" else user_data[username]["series"])
         save_data()
+        
+        # Log da deleção
+        log_access(client_ip, "delete_item_success", username, "delete_item", {
+            "title": title,
+            "category": category,
+            "old_count": old_count,
+            "new_count": new_count,
+            "library_stats": {
+                "total_movies": len(user_data[username]["movies"]),
+                "total_series": len(user_data[username]["series"])
+            }
+        })
+        
         return jsonify({"success": True})
+    
+    log_access(client_ip, "delete_item_fail", username, "user_not_found", 
+              {"title": title, "category": category})
     return jsonify({"success": False}), 400
 
 
@@ -936,17 +1015,33 @@ def view_logs():
     # Ordena por timestamp mais recente primeiro
     logs = sorted(logs, key=lambda x: x.get('timestamp', ''), reverse=True)
     
+    # Calcular estatísticas avançadas
+    mobile_users = sum(1 for log in logs if log.get('device_info', {}).get('is_mobile', False))
+    browsers = {}
+    os_stats = {}
+    actions_stats = {}
+    
+    for log in logs:
+        device_info = log.get('device_info', {})
+        browser = device_info.get('browser', 'Unknown')
+        os_info = device_info.get('os', 'Unknown')
+        action = log.get('action', 'Unknown')
+        
+        browsers[browser] = browsers.get(browser, 0) + 1
+        os_stats[os_info] = os_stats.get(os_info, 0) + 1
+        actions_stats[action] = actions_stats.get(action, 0) + 1
+
     return render_template_string('''
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📊 Logs de Acesso</title>
+    <title>📊 Analytics Avançado</title>
     <link rel="stylesheet" href="/static/styles.css">
     <style>
         .logs-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 20px auto;
             padding: 20px;
             background: #1a1a1a;
@@ -956,9 +1051,10 @@ def view_logs():
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            font-size: 12px;
         }
         .log-table th, .log-table td {
-            padding: 12px;
+            padding: 8px;
             text-align: left;
             border-bottom: 1px solid #333;
             color: #fff;
@@ -972,7 +1068,7 @@ def view_logs():
         }
         .stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
@@ -983,7 +1079,7 @@ def view_logs():
             text-align: center;
         }
         .stat-number {
-            font-size: 2em;
+            font-size: 1.8em;
             font-weight: bold;
             color: #4CAF50;
         }
@@ -998,13 +1094,49 @@ def view_logs():
             display: inline-block;
             margin-bottom: 20px;
         }
+        .detailed-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .stat-section {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .stat-section h3 {
+            color: #4CAF50;
+            margin-top: 0;
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #444;
+            color: #ccc;
+        }
+        .mobile-badge {
+            background: #ff9800;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+        .desktop-badge {
+            background: #2196F3;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
     </style>
 </head>
 <body class="biblioteca-page">
     <div class="logs-container">
         <a href="/login" class="back-button">⬅ Voltar ao Login</a>
         
-        <h1>📊 Logs de Acesso</h1>
+        <h1>📊 Analytics Avançado</h1>
         
         <div class="stats">
             <div class="stat-card">
@@ -1019,6 +1151,42 @@ def view_logs():
                 <div class="stat-number">{{ unique_users }}</div>
                 <div>Usuários Únicos</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ mobile_percentage }}%</div>
+                <div>Usuários Mobile</div>
+            </div>
+        </div>
+        
+        <div class="detailed-stats">
+            <div class="stat-section">
+                <h3>🌐 Navegadores</h3>
+                {% for browser, count in top_browsers %}
+                <div class="stat-item">
+                    <span>{{ browser }}</span>
+                    <span>{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="stat-section">
+                <h3>💻 Sistemas Operacionais</h3>
+                {% for os, count in top_os %}
+                <div class="stat-item">
+                    <span>{{ os }}</span>
+                    <span>{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="stat-section">
+                <h3>🎯 Ações Mais Frequentes</h3>
+                {% for action, count in top_actions %}
+                <div class="stat-item">
+                    <span>{{ action }}</span>
+                    <span>{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
         </div>
         
         <table class="log-table">
@@ -1026,25 +1194,47 @@ def view_logs():
                 <tr>
                     <th>Timestamp</th>
                     <th>IP</th>
-                    <th>Página</th>
                     <th>Usuário</th>
+                    <th>Página</th>
+                    <th>Ação</th>
+                    <th>Dispositivo</th>
+                    <th>Navegador</th>
+                    <th>SO</th>
+                    <th>Detalhes</th>
                 </tr>
             </thead>
             <tbody>
-                {% for log in logs[:100] %}
+                {% for log in logs[:50] %}
                 <tr>
                     <td>{{ log.timestamp }}</td>
                     <td>{{ log.ip }}</td>
-                    <td>{{ log.page }}</td>
                     <td>{{ log.username or '-' }}</td>
+                    <td>{{ log.page }}</td>
+                    <td>{{ log.action or '-' }}</td>
+                    <td>
+                        {% if log.device_info and log.device_info.is_mobile %}
+                            <span class="mobile-badge">📱 Mobile</span>
+                        {% else %}
+                            <span class="desktop-badge">🖥️ Desktop</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ log.device_info.browser if log.device_info else '-' }}</td>
+                    <td>{{ log.device_info.os if log.device_info else '-' }}</td>
+                    <td>
+                        {% if log.extra_data %}
+                            {{ log.extra_data|truncate(50) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
         
-        {% if logs|length > 100 %}
+        {% if logs|length > 50 %}
         <p style="text-align: center; color: #888; margin-top: 20px;">
-            Mostrando apenas os 100 logs mais recentes de {{ logs|length }} total
+            Mostrando apenas os 50 logs mais recentes de {{ logs|length }} total
         </p>
         {% endif %}
     </div>
@@ -1054,7 +1244,11 @@ def view_logs():
     logs=logs,
     total_logs=len(logs),
     unique_ips=len(set(log.get('ip', '') for log in logs)),
-    unique_users=len(set(log.get('username', '') for log in logs if log.get('username')))
+    unique_users=len(set(log.get('username', '') for log in logs if log.get('username'))),
+    mobile_percentage=round((mobile_users / len(logs)) * 100, 1) if logs else 0,
+    top_browsers=sorted(browsers.items(), key=lambda x: x[1], reverse=True)[:5],
+    top_os=sorted(os_stats.items(), key=lambda x: x[1], reverse=True)[:5],
+    top_actions=sorted(actions_stats.items(), key=lambda x: x[1], reverse=True)[:10]
     )
 
 @app.route('/add', methods=['POST'])
@@ -1063,15 +1257,22 @@ def add_item():
         username = request.form.get('username', '').strip()
         title = request.form.get('title', '').strip()
         category = request.form.get('category', '').strip()
+        client_ip = get_client_ip()
 
         # Validações
         if not username or username not in user_data:
+            log_access(client_ip, "add_item_fail", username, "validation_error", 
+                      {"error": "invalid_user"})
             return jsonify({"success": False, "message": "Usuário inválido"}), 400
             
         if not validar_titulo(title):
+            log_access(client_ip, "add_item_fail", username, "validation_error", 
+                      {"error": "invalid_title", "title": title})
             return jsonify({"success": False, "message": "Título inválido"}), 400
             
         if not validar_categoria(category):
+            log_access(client_ip, "add_item_fail", username, "validation_error", 
+                      {"error": "invalid_category", "category": category})
             return jsonify({"success": False, "message": "Categoria inválida"}), 400
 
         # Normalização
@@ -1084,6 +1285,8 @@ def add_item():
         lista_normalizada = [limpar_input(t) for t in lista if isinstance(t, str)]
 
         if title_normalizado in lista_normalizada:
+            log_access(client_ip, "add_item_fail", username, "duplicate", 
+                      {"title": title_clean, "category": category})
             return jsonify({
                 "success": False,
                 "message": "Já existe esse título"
@@ -1093,12 +1296,26 @@ def add_item():
         lista.append(title_clean)
         save_data()
         
+        # Log de sucesso com estatísticas
+        log_access(client_ip, "add_item_success", username, "add_item", {
+            "title": title_clean,
+            "category": category,
+            "new_total": len(lista),
+            "library_stats": {
+                "total_movies": len(user_data[username]["movies"]),
+                "total_series": len(user_data[username]["series"])
+            }
+        })
+        
         return jsonify({
             "success": True, 
             "message": f"{title_clean} adicionado com sucesso!"
         })
         
     except Exception as e:
+        client_ip = get_client_ip()
+        log_access(client_ip, "add_item_error", username, "system_error", 
+                  {"error": str(e)})
         print(f"Erro em add_item: {e}")
         return jsonify({
             "success": False,
