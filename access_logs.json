@@ -808,5 +808,35 @@
         },
         "method": "GET",
         "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:31:10",
+        "ip": "69.162.124.227",
+        "page": "index",
+        "username": null,
+        "action": null,
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Unknown",
+            "os": "Unknown",
+            "language": "en-US"
+        },
+        "method": "HEAD",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:31:10",
+        "ip": "69.162.124.227",
+        "page": "login_page",
+        "username": null,
+        "action": "page_view",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Unknown",
+            "os": "Unknown",
+            "language": "en-US"
+        },
+        "method": "HEAD",
+        "extra_data": {}
     }
 ]
