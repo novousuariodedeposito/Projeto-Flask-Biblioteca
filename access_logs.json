@@ -265,5 +265,50 @@
         },
         "method": "GET",
         "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:15:50",
+        "ip": "187.11.106.136",
+        "page": "login_page",
+        "username": null,
+        "action": "page_view",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "method": "GET",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:15:59",
+        "ip": "216.144.248.18",
+        "page": "index",
+        "username": null,
+        "action": null,
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Unknown",
+            "os": "Unknown",
+            "language": "en-US"
+        },
+        "method": "HEAD",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:15:59",
+        "ip": "216.144.248.18",
+        "page": "login_page",
+        "username": null,
+        "action": "page_view",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Unknown",
+            "os": "Unknown",
+            "language": "en-US"
+        },
+        "method": "HEAD",
+        "extra_data": {}
     }
 ]
