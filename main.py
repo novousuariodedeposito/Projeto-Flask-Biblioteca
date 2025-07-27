@@ -1,16 +1,55 @@
+
 import json
 from flask import Flask, render_template, request, render_template_string, redirect, url_for, jsonify
 import os
 import platform
 from datetime import datetime
 from keep_alive import keep_alive
-from database import db
 
 app = Flask(__name__)
 
 keep_alive()
 
 ngrok_link = ""  # Variável para armazenar o link do ngrok
+
+# Arquivos JSON
+MEDIA_LISTS_FILE = 'media_lists.json'
+ACCESS_LOGS_FILE = 'access_logs.json'
+
+def load_data():
+    """Carrega dados do arquivo JSON"""
+    try:
+        with open(MEDIA_LISTS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+def save_data():
+    """Salva dados no arquivo JSON"""
+    try:
+        with open(MEDIA_LISTS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(user_data, f, ensure_ascii=False, indent=4)
+    except Exception as e:
+        print(f"Erro ao salvar dados: {e}")
+
+def load_access_logs():
+    """Carrega logs de acesso do arquivo JSON"""
+    try:
+        with open(ACCESS_LOGS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+def save_access_logs(logs):
+    """Salva logs de acesso no arquivo JSON"""
+    try:
+        with open(ACCESS_LOGS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(logs, f, ensure_ascii=False, indent=4)
+    except Exception as e:
+        print(f"Erro ao salvar logs: {e}")
+
+# Carrega dados na inicialização
+user_data = load_data()
 
 def get_client_ip():
     """Obtém o IP real do cliente"""
@@ -64,8 +103,26 @@ def get_device_info():
 def log_access(ip, page, username=None, action=None, extra_data=None):
     """Registra acesso com informações detalhadas"""
     device_info = get_device_info()
-    db.log_access(ip, page, username, action, request.method, device_info, extra_data)
-
+    
+    log_entry = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "ip": ip,
+        "page": page,
+        "username": username,
+        "action": action,
+        "device_info": device_info,
+        "method": request.method,
+        "extra_data": extra_data or {}
+    }
+    
+    logs = load_access_logs()
+    logs.append(log_entry)
+    
+    # Manter apenas os últimos 1000 logs
+    if len(logs) > 1000:
+        logs = logs[-1000:]
+    
+    save_access_logs(logs)
 
 def limpar_input(texto):
     """Limpa e normaliza texto para comparações"""
@@ -87,16 +144,20 @@ def validar_categoria(categoria):
     return categoria in ["filme", "serie"]
 
 def inicializar_usuario(username):
-    """Inicializa usuário no banco de dados"""
-    db.get_or_create_user(username)
-
+    """Inicializa usuário se não existir"""
+    if username not in user_data:
+        user_data[username] = {
+            "movies": [],
+            "series": [],
+            "abertos": {"movies": [], "series": []}
+        }
+        save_data()
 
 @app.route('/')
 def index():
     client_ip = get_client_ip()
     log_access(client_ip, "index")
     return redirect('/login')
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -128,16 +189,16 @@ def login():
         # Inicializa usuário se não existir
         inicializar_usuario(username)
         
-        movies = db.get_user_movies(username)
-        series = db.get_user_series(username)
+        movies = user_data[username]["movies"]
+        series = user_data[username]["series"]
         
         log_access(client_ip, "login_success", username, "success", 
-                   {"total_movies": len(movies), "total_series": len(series)})
+                   {"new_user": username not in user_data,
+                    "total_movies": len(movies), "total_series": len(series)})
         return redirect(url_for('my_biblioteca', username=username))
     
     log_access(client_ip, "login_page", None, "page_view")
     return render_template('login.html')
-
 
 @app.route('/mybiblioteca', methods=['GET'])
 def my_biblioteca():
@@ -145,12 +206,12 @@ def my_biblioteca():
     client_ip = get_client_ip()
     log_access(client_ip, "mybiblioteca", username)
     
-    movies = db.get_user_movies(username)
-    series = db.get_user_series(username)
-    all_users = db.get_all_users()
-    
-    if not movies and not series and username not in all_users:
+    if username not in user_data:
         return "Usuário não encontrado!", 404
+
+    movies = user_data[username]["movies"]
+    series = user_data[username]["series"]
+    all_users = list(user_data.keys())
 
     return render_template_string('''
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -243,7 +304,6 @@ def my_biblioteca():
         </select>
         <button type="submit" name="action" value="view_aberto" class="view-button">Ver Em Aberto</button>
     </form>
-
 
     <div id="toast" class="toast"></div>
 
@@ -357,18 +417,19 @@ def my_biblioteca():
                                   series=series,
                                   users=all_users)
 
-
 @app.route('/view_other', methods=['POST'])
 def view_other():
     username = request.form.get('username')
     other_user = request.form.get('other_username')
-    other_movies = db.get_user_movies(other_user)
-    other_series = db.get_user_series(other_user)
-    all_users = db.get_all_users()
     
-    if other_user in all_users:
+    if other_user not in user_data:
+        return "Usuário não encontrado!", 404
+    
+    other_movies = user_data[other_user]["movies"]
+    other_series = user_data[other_user]["series"]
+    all_users = list(user_data.keys())
 
-        return render_template_string('''
+    return render_template_string('''
  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 <link rel="stylesheet" href="/static/styles.css">
@@ -433,10 +494,6 @@ def view_other():
                                       movies=other_movies,
                                       series=other_series)
 
-    return "Usuário não encontrado!", 404
-
-
-# Rota para deletar item
 @app.route('/delete', methods=['POST'])
 def delete_item():
     data = request.get_json()
@@ -445,37 +502,40 @@ def delete_item():
     category = data.get('category')
     client_ip = get_client_ip()
 
-    if db.delete_item(username, title, category):
-        movies = db.get_user_movies(username)
-        series = db.get_user_series(username)
+    if username not in user_data:
+        log_access(client_ip, "delete_item_fail", username, "user_not_found", 
+                  {"title": title, "category": category})
+        return jsonify({"success": False}), 400
+
+    key = "movies" if category == "filme" else "series"
+    if title in user_data[username][key]:
+        user_data[username][key].remove(title)
+        save_data()
         
         # Log da deleção
         log_access(client_ip, "delete_item_success", username, "delete_item", {
             "title": title,
             "category": category,
             "library_stats": {
-                "total_movies": len(movies),
-                "total_series": len(series)
+                "total_movies": len(user_data[username]["movies"]),
+                "total_series": len(user_data[username]["series"])
             }
         })
         
         return jsonify({"success": True})
     
-    log_access(client_ip, "delete_item_fail", username, "user_not_found", 
-              {"title": title, "category": category})
     return jsonify({"success": False}), 400
-
 
 @app.route('/view_aberto', methods=['POST'])
 def view_aberto():
     username = request.form.get('username')
     other_user = request.form.get('other_username')
 
-    all_users = db.get_all_users()
-    if other_user not in all_users:
+    if other_user not in user_data:
         return "Usuário não encontrado!", 404
 
-    data = db.get_user_abertos(other_user)
+    abertos_movies = user_data[other_user].get("abertos", {}).get("movies", [])
+    abertos_series = user_data[other_user].get("abertos", {}).get("series", [])
 
     return render_template_string('''
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -524,36 +584,34 @@ def view_aberto():
     ''',
                                   username=username,
                                   other_user=other_user,
-                                  movies=data.get("movies", []),
-                                  series=data.get("series", []))
-
+                                  movies=abertos_movies,
+                                  series=abertos_series)
 
 @app.route('/sync_em_aberto', methods=['GET'])
 def sync_em_aberto():
     username = request.args.get('username')
-    all_users = db.get_all_users()
-    if not username or username not in all_users:
+    if not username or username not in user_data:
         return jsonify({"success": False, "error": "Usuário inválido"}), 400
 
-    data = db.get_user_abertos(username)
+    abertos = user_data[username].get("abertos", {"movies": [], "series": []})
     return jsonify({
         "success": True,
-        "movies": data["movies"],
-        "series": data["series"]
+        "movies": abertos.get("movies", []),
+        "series": abertos.get("series", [])
     })
-
 
 @app.route('/em_aberto', methods=['GET', 'POST'])
 def em_aberto():
     username = request.args.get('username')
-    all_users = db.get_all_users()
     if not username:
         return "Usuário inválido", 404
     
-    if username not in all_users:
+    if username not in user_data:
         inicializar_usuario(username)
     
-    abertos_data = db.get_user_abertos(username)
+    abertos = user_data[username].get("abertos", {"movies": [], "series": []})
+    abertos_movies = abertos.get("movies", [])
+    abertos_series = abertos.get("series", [])
 
     return render_template_string(
         '''
@@ -763,33 +821,8 @@ def em_aberto():
 </html>
 ''',
         username=username,
-        movies=abertos_data["movies"],
-        series=abertos_data["series"])
-
-
-@app.route('/add_aberto', methods=['POST'])
-def add_aberto():
-    username = request.form.get('username')
-    title = request.form.get('title')
-    category = request.form.get('category')
-
-    if username not in user_data or category not in ["filme", "serie"]:
-        return "Dados inválidos", 400
-
-    # Lista de usuários afetados: o próprio + parceiro
-    affected_users = [username]
-    key = "movies" if category == "filme" else "series"
-
-    for user in affected_users:
-        user_data.setdefault(user, {})
-        user_data[user].setdefault("abertos", {"movies": [], "series": []})
-
-        if title not in user_data[user]["abertos"][key]:
-            user_data[user]["abertos"][key].append(title)
-
-    save_data()
-    return redirect(url_for('em_aberto', username=username))
-
+        movies=abertos_movies,
+        series=abertos_series)
 
 @app.route('/add_aberto_ajax', methods=['POST'])
 def add_aberto_ajax():
@@ -799,12 +832,8 @@ def add_aberto_ajax():
         category = request.form.get('category', '').strip()
 
         # Validações
-        all_users = db.get_all_users()
-        if not username:
+        if not username or username not in user_data:
             return jsonify({"success": False, "message": "Usuário inválido"}), 400
-            
-        if username not in all_users:
-            inicializar_usuario(username)
             
         if not validar_titulo(title):
             return jsonify({"success": False, "message": "Título inválido"}), 400
@@ -812,14 +841,24 @@ def add_aberto_ajax():
         if not validar_categoria(category):
             return jsonify({"success": False, "message": "Categoria inválida"}), 400
 
-        # Adicionar
-        if db.add_aberto(username, title, category):
-            return jsonify({
-                "success": True, 
-                "message": f"{title} adicionado aos em aberto!"
-            })
-        else:
+        # Inicializar abertos se não existir
+        if "abertos" not in user_data[username]:
+            user_data[username]["abertos"] = {"movies": [], "series": []}
+
+        key = "movies" if category == "filme" else "series"
+        
+        # Verificar se já existe
+        if title in user_data[username]["abertos"][key]:
             return jsonify({"success": False, "message": "Item já existe"}), 400
+
+        # Adicionar
+        user_data[username]["abertos"][key].append(title)
+        save_data()
+        
+        return jsonify({
+            "success": True, 
+            "message": f"{title} adicionado aos em aberto!"
+        })
         
     except Exception as e:
         print(f"Erro em add_aberto_ajax: {e}")
@@ -828,56 +867,6 @@ def add_aberto_ajax():
             "message": "Erro interno do servidor"
         }), 500
 
-
-@app.route('/delete_aberto', methods=['POST'])
-def delete_aberto():
-    username = request.form.get('username')
-    title = request.form.get('title')
-    category = request.form.get('category')
-
-    if username not in user_data or category not in ["filme", "serie"]:
-        return "Dados inválidos", 400
-
-    # Define os usuários afetados
-    affected_users = [username]
-    key = "movies" if category == "filme" else "series"
-
-    for user in affected_users:
-        if user in user_data and "abertos" in user_data[user]:
-            lista = user_data[user]["abertos"].get(key, [])
-            user_data[user]["abertos"][key] = [
-                t for t in lista if isinstance(t, str) and isinstance(title, str) and t.lower() != title.lower()
-            ]
-
-    save_data()
-    return redirect(url_for('em_aberto', username=username))
-
-
-@app.route('/mover_para_biblioteca', methods=['POST'])
-def mover_para_biblioteca():
-    username = request.form.get('username')
-    title = request.form.get('title')
-    category = request.form.get('category')
-
-    if username not in user_data or category not in ["filme", "serie"]:
-        return "Dados inválidos", 400
-
-    affected_users = [username]
-    key = "movies" if category == "filme" else "series"
-
-    for user in affected_users:
-        # Adiciona à biblioteca (se ainda não estiver)
-        if title not in user_data[user][key]:
-            user_data[user][key].append(title)
-
-        # Remove da lista de abertos (se estiver)
-        if title in user_data[user].get("abertos", {}).get(key, []):
-            user_data[user]["abertos"][key].remove(title)
-
-    save_data()
-    return redirect(url_for('em_aberto', username=username))
-
-
 @app.route('/delete_aberto_ajax', methods=['POST'])
 def delete_aberto_ajax():
     data = request.get_json()
@@ -885,13 +874,18 @@ def delete_aberto_ajax():
     title = data.get('title')
     category = data.get('category')
 
-    all_users = db.get_all_users()
-    if username not in all_users or category not in ["filme", "serie"]:
+    if username not in user_data or category not in ["filme", "serie"]:
         return jsonify({"success": False}), 400
 
-    success = db.delete_aberto(username, title, category)
-    return jsonify({"success": success})
+    key = "movies" if category == "filme" else "series"
+    
+    if "abertos" in user_data[username] and key in user_data[username]["abertos"]:
+        if title in user_data[username]["abertos"][key]:
+            user_data[username]["abertos"][key].remove(title)
+            save_data()
+            return jsonify({"success": True})
 
+    return jsonify({"success": False}), 400
 
 @app.route('/mover_para_biblioteca_ajax', methods=['POST'])
 def mover_para_biblioteca_ajax():
@@ -900,13 +894,22 @@ def mover_para_biblioteca_ajax():
     title = data.get('title')
     category = data.get('category')
 
-    all_users = db.get_all_users()
-    if username not in all_users or category not in ["filme", "serie"]:
+    if username not in user_data or category not in ["filme", "serie"]:
         return jsonify({"success": False}), 400
 
-    success = db.move_to_biblioteca(username, title, category)
-    return jsonify({"success": success})
+    key = "movies" if category == "filme" else "series"
 
+    # Adiciona à biblioteca (se ainda não estiver)
+    if title not in user_data[username][key]:
+        user_data[username][key].append(title)
+
+    # Remove da lista de abertos (se estiver)
+    if "abertos" in user_data[username] and key in user_data[username]["abertos"]:
+        if title in user_data[username]["abertos"][key]:
+            user_data[username]["abertos"][key].remove(title)
+
+    save_data()
+    return jsonify({"success": True})
 
 @app.route('/admin/logs')
 def view_logs():
@@ -914,7 +917,7 @@ def view_logs():
     client_ip = get_client_ip()
     log_access(client_ip, "admin_logs")
     
-    logs = db.get_access_logs(1000)  # Busca últimos 1000 logs
+    logs = load_access_logs()[-1000:]  # Últimos 1000 logs
     
     # Calcular estatísticas avançadas
     mobile_users = sum(1 for log in logs if log.get('device_info', {}).get('is_mobile', False))
@@ -1161,14 +1164,10 @@ def add_item():
         client_ip = get_client_ip()
 
         # Validações
-        all_users = db.get_all_users()
-        if not username:
+        if not username or username not in user_data:
             log_access(client_ip, "add_item_fail", username, "validation_error", 
                       {"error": "invalid_user"})
             return jsonify({"success": False, "message": "Usuário inválido"}), 400
-            
-        if username not in all_users:
-            inicializar_usuario(username)
             
         if not validar_titulo(title):
             log_access(client_ip, "add_item_fail", username, "validation_error", 
@@ -1182,33 +1181,35 @@ def add_item():
 
         # Normalização
         title_clean = title.strip()
+        key = "movies" if category == "filme" else "series"
 
-        # Adicionar
-        if db.add_item(username, title_clean, category):
-            movies = db.get_user_movies(username)
-            series = db.get_user_series(username)
-            
-            # Log de sucesso com estatísticas
-            log_access(client_ip, "add_item_success", username, "add_item", {
-                "title": title_clean,
-                "category": category,
-                "library_stats": {
-                    "total_movies": len(movies),
-                    "total_series": len(series)
-                }
-            })
-            
-            return jsonify({
-                "success": True, 
-                "message": f"{title_clean} adicionado com sucesso!"
-            })
-        else:
+        # Verificar se já existe
+        if title_clean in user_data[username][key]:
             log_access(client_ip, "add_item_fail", username, "duplicate", 
                       {"title": title_clean, "category": category})
             return jsonify({
                 "success": False,
                 "message": "Já existe esse título"
             }), 400
+
+        # Adicionar
+        user_data[username][key].append(title_clean)
+        save_data()
+        
+        # Log de sucesso com estatísticas
+        log_access(client_ip, "add_item_success", username, "add_item", {
+            "title": title_clean,
+            "category": category,
+            "library_stats": {
+                "total_movies": len(user_data[username]["movies"]),
+                "total_series": len(user_data[username]["series"])
+            }
+        })
+        
+        return jsonify({
+            "success": True, 
+            "message": f"{title_clean} adicionado com sucesso!"
+        })
         
     except Exception as e:
         client_ip = get_client_ip()
@@ -1219,7 +1220,6 @@ def add_item():
             "success": False,
             "message": "Erro interno do servidor"
         }), 500
-
 
 if __name__ == "__main__":
     if platform.system() == "Windows":
