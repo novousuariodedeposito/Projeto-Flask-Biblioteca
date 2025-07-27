@@ -210,8 +210,9 @@ def my_biblioteca():
 
     return render_template_string('''
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 <link rel="stylesheet" href="/static/styles.css">
-<title>Minha Biblioteca - {{ username }}</title>
+<title>🎬 Minha Biblioteca - {{ username }}</title>
 <body class="biblioteca-page">
     <div class="biblioteca-container">
         <div class="header">
@@ -421,8 +422,9 @@ def view_other():
 
         return render_template_string('''
  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 <link rel="stylesheet" href="/static/styles.css">
-<title>Lista de {{ other_username }}</title>
+<title>📚 Lista de {{ other_username }}</title>
 <body class="biblioteca-page">
     <div class="biblioteca-container">
         <div class="header">
@@ -625,6 +627,7 @@ def em_aberto():
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎯 Em Aberto</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body class="biblioteca-page">
