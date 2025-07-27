@@ -184,5 +184,37 @@
         "referer": "https://04ce3f8b-d764-4c94-90e3-8d67cc6f6e78-00-9olekrdfukxq.spock.replit.dev/login",
         "method": "GET",
         "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:07:55",
+        "ip": "187.11.106.136",
+        "page": "index",
+        "username": null,
+        "action": null,
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "referer": "https://04ce3f8b-d764-4c94-90e3-8d67cc6f6e78-00-9olekrdfukxq.spock.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arrt%3A",
+        "method": "GET",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-27 09:07:55",
+        "ip": "187.11.106.136",
+        "page": "login_page",
+        "username": null,
+        "action": "page_view",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Chrome",
+            "os": "Windows",
+            "language": "pt-BR"
+        },
+        "referer": "https://04ce3f8b-d764-4c94-90e3-8d67cc6f6e78-00-9olekrdfukxq.spock.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Arrt%3A",
+        "method": "GET",
+        "extra_data": {}
     }
 ]
