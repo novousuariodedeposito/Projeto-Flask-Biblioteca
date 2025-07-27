@@ -2,6 +2,7 @@ import json
 from flask import Flask, render_template, request, render_template_string, redirect, url_for, jsonify
 import os
 import platform
+from datetime import datetime
 from keep_alive import keep_alive
 
 app = Flask(__name__)
@@ -22,6 +23,51 @@ if os.path.exists("media_lists.json"):
 else:
     user_data = {}  # Cria um dicionário vazio se o arquivo não existir
 
+
+def save_data():
+    with open("media_lists.json", "w", encoding="utf-8") as file:
+        json.dump(user_data, file, indent=4)
+
+def get_client_ip():
+    """Obtém o IP real do cliente"""
+    # Verifica headers de proxy primeiro
+    if request.headers.get('X-Forwarded-For'):
+        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    elif request.headers.get('X-Real-IP'):
+        return request.headers.get('X-Real-IP')
+    else:
+        return request.remote_addr
+
+def log_access(ip, page, username=None):
+    """Registra acesso com IP, página e timestamp"""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Carrega logs existentes
+    if os.path.exists("access_logs.json"):
+        try:
+            with open("access_logs.json", "r", encoding="utf-8") as file:
+                logs = json.load(file)
+        except json.JSONDecodeError:
+            logs = []
+    else:
+        logs = []
+    
+    # Adiciona novo log
+    log_entry = {
+        "timestamp": timestamp,
+        "ip": ip,
+        "page": page,
+        "username": username
+    }
+    logs.append(log_entry)
+    
+    # Mantém apenas os últimos 1000 logs para evitar arquivo muito grande
+    if len(logs) > 1000:
+        logs = logs[-1000:]
+    
+    # Salva logs
+    with open("access_logs.json", "w", encoding="utf-8") as file:
+        json.dump(logs, file, indent=4)
 
 def save_data():
     with open("media_lists.json", "w", encoding="utf-8") as file:
@@ -62,13 +108,18 @@ def inicializar_usuario(username):
 
 @app.route('/')
 def index():
+    client_ip = get_client_ip()
+    log_access(client_ip, "index")
     return redirect('/login')
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    client_ip = get_client_ip()
+    
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
+        log_access(client_ip, "login_attempt", username)
         
         # Validações
         if not username:
@@ -86,14 +137,19 @@ def login():
         inicializar_usuario(username)
         save_data()
         
+        log_access(client_ip, "login_success", username)
         return redirect(url_for('my_biblioteca', username=username))
-
+    
+    log_access(client_ip, "login_page")
     return render_template('login.html')
 
 
 @app.route('/mybiblioteca', methods=['GET'])
 def my_biblioteca():
     username = request.args.get('username')
+    client_ip = get_client_ip()
+    log_access(client_ip, "mybiblioteca", username)
+    
     if username not in user_data:
         return "Usuário não encontrado!", 404
 
@@ -861,6 +917,145 @@ def mover_para_biblioteca_ajax():
     save_data()
     return jsonify({"success": True})
 
+
+@app.route('/admin/logs')
+def view_logs():
+    """Rota para visualizar logs de acesso (apenas para administração)"""
+    client_ip = get_client_ip()
+    log_access(client_ip, "admin_logs")
+    
+    if not os.path.exists("access_logs.json"):
+        logs = []
+    else:
+        try:
+            with open("access_logs.json", "r", encoding="utf-8") as file:
+                logs = json.load(file)
+        except json.JSONDecodeError:
+            logs = []
+    
+    # Ordena por timestamp mais recente primeiro
+    logs = sorted(logs, key=lambda x: x.get('timestamp', ''), reverse=True)
+    
+    return render_template_string('''
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Logs de Acesso</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .logs-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            border-radius: 10px;
+        }
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .log-table th, .log-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            color: #fff;
+        }
+        .log-table th {
+            background: #2d2d2d;
+            font-weight: bold;
+        }
+        .log-table tr:hover {
+            background: #2a2a2a;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .back-button {
+            background: #666;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body class="biblioteca-page">
+    <div class="logs-container">
+        <a href="/login" class="back-button">⬅ Voltar ao Login</a>
+        
+        <h1>📊 Logs de Acesso</h1>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_logs }}</div>
+                <div>Total de Acessos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ unique_ips }}</div>
+                <div>IPs Únicos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ unique_users }}</div>
+                <div>Usuários Únicos</div>
+            </div>
+        </div>
+        
+        <table class="log-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>IP</th>
+                    <th>Página</th>
+                    <th>Usuário</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs[:100] %}
+                <tr>
+                    <td>{{ log.timestamp }}</td>
+                    <td>{{ log.ip }}</td>
+                    <td>{{ log.page }}</td>
+                    <td>{{ log.username or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        {% if logs|length > 100 %}
+        <p style="text-align: center; color: #888; margin-top: 20px;">
+            Mostrando apenas os 100 logs mais recentes de {{ logs|length }} total
+        </p>
+        {% endif %}
+    </div>
+</body>
+</html>
+    ''', 
+    logs=logs,
+    total_logs=len(logs),
+    unique_ips=len(set(log.get('ip', '') for log in logs)),
+    unique_users=len(set(log.get('username', '') for log in logs if log.get('username')))
+    )
 
 @app.route('/add', methods=['POST'])
 def add_item():
