@@ -210,9 +210,8 @@ def my_biblioteca():
 
     return render_template_string('''
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 <link rel="stylesheet" href="/static/styles.css">
-<title>🎬 Biblioteca de {{ username }}</title>
+<title>Minha Biblioteca - {{ username }}</title>
 <body class="biblioteca-page">
     <div class="biblioteca-container">
         <div class="header">
@@ -422,9 +421,8 @@ def view_other():
 
         return render_template_string('''
  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 <link rel="stylesheet" href="/static/styles.css">
-<title>📚 Lista de {{ other_username }}</title>
+<title>Lista de {{ other_username }}</title>
 <body class="biblioteca-page">
     <div class="biblioteca-container">
         <div class="header">
@@ -546,9 +544,8 @@ def view_aberto():
 
     return render_template_string('''
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css">
-    <title>🎯 Em Aberto de {{ other_user }}</title>
+    <title>Em Aberto de {{ other_user }}</title>
     <body class="biblioteca-page">
     <div class="biblioteca-container">
         <div class="header">
@@ -627,8 +624,7 @@ def em_aberto():
 <html lang="pt-BR">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎯 Em Aberto de {{ username }}</title>
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>🎯 Em Aberto</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body class="biblioteca-page">
@@ -1040,7 +1036,6 @@ def view_logs():
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📊 Analytics Avançado</title>
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/styles.css">
     <style>
         .logs-container {
