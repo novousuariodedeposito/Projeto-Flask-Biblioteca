@@ -71,7 +71,6 @@ def get_device_info():
         os_info = 'iOS'
     
     return {
-        'user_agent': user_agent,
         'is_mobile': is_mobile,
         'browser': browser,
         'os': os_info,
