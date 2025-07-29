@@ -784,3 +784,28 @@ body.login-body {
 .login-button:hover {
   background: #1e2a6d;
 }
+
+@media screen and (max-width: 600px) {
+    .logs-container {
+        padding: 10px;
+        margin: 0;
+    }
+    .log-table {
+        width: 100%;
+        font-size: 12px; /* Tamanho da fonte ajustado para telas menores */
+        overflow-x: auto; /* Permite rolagem horizontal se necessário */
+    }
+    .log-table th,
+    .log-table td {
+        padding: 6px 4px; /* Reduz o espaçamento dentro das células */
+    }
+    .stat-card {
+        flex-direction: column; /* Empilha as informações verticalmente */
+        align-items: flex-start; /* Alinha à esquerda */
+        margin-bottom: 10px;
+    }
+    .delete-form select,
+    .delete-button {
+        width: 100%; /* Occupy full width */
+    }
+}

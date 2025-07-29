@@ -1,113 +1,62 @@
 [
     {
-        "timestamp": "2025-07-27 09:52:23",
-        "ip": "187.11.106.136",
-        "page": "login_page",
-        "username": null,
-        "action": "page_view",
-        "device_info": {
-            "is_mobile": false,
-            "browser": "Chrome",
-            "os": "Windows",
-            "language": "pt-BR"
-        },
-        "method": "GET",
-        "extra_data": {}
-    },
-    {
-        "timestamp": "2025-07-27 09:52:37",
-        "ip": "187.11.106.136",
-        "page": "login_page",
-        "username": null,
-        "action": "page_view",
-        "device_info": {
-            "is_mobile": false,
-            "browser": "Chrome",
-            "os": "Windows",
-            "language": "pt-BR"
-        },
-        "method": "GET",
-        "extra_data": {}
-    },
-    {
-        "timestamp": "2025-07-27 09:52:41",
-        "ip": "187.11.106.136",
-        "page": "login_attempt",
-        "username": "Matheus",
-        "action": "attempt",
-        "device_info": {
-            "is_mobile": false,
-            "browser": "Chrome",
-            "os": "Windows",
-            "language": "pt-BR"
-        },
-        "method": "POST",
-        "extra_data": {
-            "form_username": "Matheus"
-        }
-    },
-    {
-        "timestamp": "2025-07-27 09:52:41",
-        "ip": "187.11.106.136",
-        "page": "login_success",
-        "username": "Matheus",
-        "action": "success",
-        "device_info": {
-            "is_mobile": false,
-            "browser": "Chrome",
-            "os": "Windows",
-            "language": "pt-BR"
-        },
-        "method": "POST",
-        "extra_data": {
-            "new_user": false,
-            "total_movies": 252,
-            "total_series": 93
-        }
-    },
-    {
-        "timestamp": "2025-07-27 09:52:41",
-        "ip": "187.11.106.136",
-        "page": "mybiblioteca",
-        "username": "Matheus",
-        "action": null,
-        "device_info": {
-            "is_mobile": false,
-            "browser": "Chrome",
-            "os": "Windows",
-            "language": "pt-BR"
-        },
-        "method": "GET",
-        "extra_data": {}
-    },
-    {
-        "timestamp": "2025-07-27 09:52:56",
-        "ip": "187.11.106.136",
-        "page": "admin_logs",
+        "timestamp": "2025-07-28 22:21:00",
+        "ip": "216.245.221.83",
+        "page": "index",
         "username": null,
         "action": null,
         "device_info": {
             "is_mobile": false,
-            "browser": "Chrome",
-            "os": "Windows",
-            "language": "pt-BR"
+            "browser": "Unknown",
+            "os": "Unknown",
+            "language": "en-US"
         },
-        "method": "GET",
+        "method": "HEAD",
         "extra_data": {}
     },
     {
-        "timestamp": "2025-07-27 09:53:11",
-        "ip": "187.11.106.136",
+        "timestamp": "2025-07-28 22:21:00",
+        "ip": "216.245.221.83",
         "page": "login_page",
         "username": null,
         "action": "page_view",
         "device_info": {
             "is_mobile": false,
-            "browser": "Chrome",
-            "os": "Windows",
-            "language": "pt-BR"
+            "browser": "Unknown",
+            "os": "Unknown",
+            "language": "en-US"
         },
-        "method": "GET",
+        "method": "HEAD",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-28 22:26:04",
+        "ip": "69.162.124.235",
+        "page": "index",
+        "username": null,
+        "action": null,
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Unknown",
+            "os": "Unknown",
+            "language": "en-US"
+        },
+        "method": "HEAD",
+        "extra_data": {}
+    },
+    {
+        "timestamp": "2025-07-28 22:26:04",
+        "ip": "69.162.124.235",
+        "page": "login_page",
+        "username": null,
+        "action": "page_view",
+        "device_info": {
+            "is_mobile": false,
+            "browser": "Unknown",
+            "os": "Unknown",
+            "language": "en-US"
+        },
+        "method": "HEAD",
         "extra_data": {}
     }
 ]
